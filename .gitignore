@@ -1,8 +1,6 @@
 .vscode
 venv
 __pycache__
-Google
 *.log
-test_case
-_test.py
-_for.py
+
+Google

@@ -1,123 +1,90 @@
 import os
-import re
 import time
-from core.logger import Logger
+import urllib
+import argparse
+
 from core.config import Config
+from core.logger import Logger
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.chrome.options import Options
 
 logger = Logger(logger="Auto-Submit").getlog()
 config = Config()
-# setup webdriver
-options = webdriver.ChromeOptions()
-#options.binary_location = config.binary_prefix
-options.add_experimental_option("excludeSwitches", ["enable-logging"])
-driver = webdriver.Chrome(config.cd_prefix, options=options)
-# open the website
-driver.get("https://console.aws.amazon.com")
-driver.implicitly_wait(10)
-logger.info(driver.title)
+
+def open_browser(args):
+    '''
+    Windows User need to set the binary and chromedrive path
+    '''
+    options = Options()
+    #options.binary_location = config.binary_prefix
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-dev-shm-usage")
+    browser = webdriver.Chrome(options=options)
+    #browser = webdriver.Chrome(config.cd_prefix, options=options)
+    return browser
+
+def colse_browser(args, browser):
+    try:
+        browser.close()
+    except Exception:
+        logger.debug("Error", Exception)
+
+def login(args, browser):
+    logger.info("Using {} account to login.".format(config.account))
+
+    url = "https://{}.signin.aws.amazon.com/console".format(config.accountid)
+    browser.get(url)
+    logger.info(browser.title)
+    time.sleep(5)
+
+    browser.find_element_by_id("username").send_keys(config.account)
+    browser.find_element_by_id("password").send_keys(config.password)
+    browser.find_element_by_id("signin_button").click()
+    time.sleep(5)
+
+    usr = browser.find_element_by_id("nav-usernameMenu").text
+    logger.info("Login Successful - {}".format(usr))
+
+    time.sleep(5)
 
 
-def login():
-    if config.login_type.lower() == 'root':
-        logger.info(u'Using the % s user Sign-in' % config.login_type.upper())
+def submit_model(args, browser):
+    logger.info("Try to submit the {} model".format(config.md_name))
+
+    url = "{}/{}{}/submitModel".format(config.league_url, urllib.parse.quote_plus(config.arn), config.league_name)
+    
+    while True:
         try:
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'resolving_input'))).send_keys(config.account)
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'next_button'))).click()
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'password'))).send_keys(config.password)
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'signin_button'))).click()
-            time.sleep(5)
-            if driver.find_element_by_id('error_title').text == 'Authentication failed':
-                logger.warning(
-                    u'Your authentication information is incorrect. Please try again.')
-                exit()
-        except NoSuchElementException:
-            usr = driver.find_element_by_id("nav-usernameMenu").text
-            logger.info(u"Login Successful - %s" % usr)
-    elif config.login_type.lower() == 'iam':
-        logger.info(u'Using the % s user Sign-in' % config.login_type.upper())
-        try:
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'iam_user_radio_button'))).click()
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'resolving_input'))).send_keys(config.accountid)
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'next_button'))).click()
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'username'))).send_keys(config.account)
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'password'))).send_keys(config.password)
-            WebDriverWait(driver, 5).until(
-                EC.element_to_be_clickable((By.ID, 'signin_button'))).click()
-            time.sleep(5)
-            if driver.find_element_by_class_name('mainError.ng-binding.ng-scope').text == 'Your authentication information is incorrect. Please try again.':
-                logger.warning(
-                    u'Your authentication information is incorrect. Please try again.')
-        except NoSuchElementException:
-            usr = driver.find_element_by_id("nav-usernameMenu").text
-            logger.info(u"Login Successful - %s" % usr)
-            # try:
-            #    element = WebDriverWait(driver, 10).until(
-            #        EC.presence_of_element_located((By.ID, "myDynamicElement")))
-
-
-def submit():
-    # Go to the submit page
-    if driver.title == "AWS 管理控制台" or 'AWS Management Console':
-        logger.info(u'Going to DeepRacer Page')
-        driver.get('https://console.aws.amazon.com/deepracer/')
-        driver.find_elements_by_partial_link_text(
-            'AWS Summit Online')[0].click()
-        logger.info(u'AWS Summit Online')
-        driver.find_elements_by_xpath(
-            "//*[@aria-labelledby='awsui-cards-2-0-header']")
-        driver.find_elements_by_css_selector(
-            'button.awsui-button.awsui-button-variant-normal.awsui-hover-child-icons')[0].click()
-        vn = driver.find_elements_by_id(
-            'PLCHLDR_leaderboard_summary_view_name')[0].text
-        logger.info(vn)
-        time.sleep(10)
-        while True:
-            x = driver.find_elements_by_css_selector(
-                "button.awsui-button.awsui-button-variant-primary.awsui-hover-child-icons")[0]
+            browser.get(url)
             time.sleep(10)
-            if x == x:
-                time.sleep(10)
-                x.click()
-                time.sleep(10)
-                driver.find_element_by_class_name(
-                    "awsui-select-trigger-icon").click()
-                time.sleep(10)
-                # driver.find_element_by_id("awsui-select-0-dropdown-option-0").click()
-                driver.find_elements_by_xpath(
-                    "//*[@title='" + config.md_name + "']")[0].click()
-                time.sleep(10)
-                driver.find_elements_by_class_name("awsui-form-actions")
-                a = driver.find_elements_by_css_selector(
-                    "button.awsui-button.awsui-button-variant-primary.awsui-hover-child-icons")[0]
-                a.click()
-                time.sleep(600)
-                logger.info(u'Rank - %s' %
-                            driver.find_elements_by_id('PLCHLDR_league_rank')[0].text)
-                logger.info(u'Latest model submitted - %s' %
-                            driver.find_elements_by_id('PLCHLDR_latest_model_name')[0].text)
-                logger.info(
-                    u'Time - %s' % driver.find_elements_by_id('PLCHLDR_latest_model_time')[0].text)
-                logger.info(u'Submission time - %s' %
-                            driver.find_elements_by_id('PLCHLDR_latest_model_submission_time')[0].text)
+            browser.find_element_by_class_name("awsui-dropdown-trigger").click()
 
+            path = '//*[@title="{}"]'.format(config.md_name)
+            browser.find_element_by_xpath(path).click()
+            browser.find_element_by_class_name("awsui-button-variant-primary").click()
+
+            time.sleep(10)
+            logger.info("Success submit the {} model".format(config.md_name))
+            time.sleep(600)
+            logger.info(u'Rank - %s' %
+                        browser.find_elements_by_id('PLCHLDR_league_rank')[0].text)
+            logger.info(u'Latest model submitted - %s' %
+                        browser.find_elements_by_id('PLCHLDR_latest_model_name')[0].text)
+            logger.info(
+                u'Time - %s' % browser.find_elements_by_id('PLCHLDR_latest_model_time')[0].text)
+            logger.info(u'Submission time - %s' %
+                            browser.find_elements_by_id('PLCHLDR_latest_model_submission_time')[0].text)
+
+        except Exception:
+            logger.debug("Error", Exception)
 
 def main():
-    login()
-    submit()
+    args = argparse.ArgumentParser()
+    browser = open_browser(args)
+    login(args, browser)
+    submit_model(args, browser)
+    colse_browser(args, browser)
 
 
 if __name__ == "__main__":
