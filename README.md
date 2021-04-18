@@ -29,6 +29,6 @@ If the version it not match please go to https://sites.google.com/a/chromium.org
 ```bash
 git clone https://github.com/lshw54/deepracer-autosubmit.git
 cd deepracer-autosubmit
-pip3 install -r rquirements.txt
+pip3 install -r requirements.txt
 python3 main.py
 ```
