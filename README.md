@@ -23,8 +23,7 @@ sudo apt install -y chromium-chromedriver
 ```
 
 ## Quick Start
-Make Sure you chrome version is `85.0.4183.102`
-If the version it not match please go to https://sites.google.com/a/chromium.org/chromedriver/downloads
+<b>Make Sure you have installed the Chrome</b>
 
 ```bash
 git clone https://github.com/lshw54/deepracer-autosubmit.git

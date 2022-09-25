@@ -6,6 +6,8 @@ import argparse
 from core.config import Config
 from core.logger import Logger
 from selenium import webdriver
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
 logger = Logger(logger="Auto-Submit").getlog()
@@ -17,11 +19,12 @@ def open_browser(args):
     '''
     options = Options()
     #options.binary_location = config.binary_prefix
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--disable-dev-shm-usage")
-    browser = webdriver.Chrome(options=options)
+    #options.add_argument("--headless")
+    #options.add_argument("--disable-gpu")
+    #options.add_argument("--disable-dev-shm-usage")
+    options.add_experimental_option('excludeSwitches', ['enable-logging'])
     #browser = webdriver.Chrome(config.cd_prefix, options=options)
+    browser = webdriver.Chrome(ChromeDriverManager().install())
     return browser
 
 def colse_browser(args, browser):
@@ -57,12 +60,22 @@ def submit_model(args, browser):
     while True:
         try:
             browser.get(url)
+            # time.sleep(10)
+            # try:
+            #     browser.find_element(By.XPATH, "//body").click()
+            #     browser.find_element(By.XPATH, '//div[@id="PLCHLDR__new_car_reward_modal"]').click()
+            # except Exception:
+            #     logger.debug("Error", Exception)
+            #     #browser.save_screenshot(screenshot)
+            #     #post_slack(doc, "{} : {}".format(args.target, ex), screenshot)
+            
             time.sleep(10)
-            browser.find_element_by_class_name("awsui-dropdown-trigger").click()
+
+            browser.find_element(By.CSS_SELECTOR, "button[class^='awsui_button-trigger']").click()
 
             path = '//*[@title="{}"]'.format(config.md_name)
             browser.find_element_by_xpath(path).click()
-            browser.find_element_by_class_name("awsui-button-variant-primary").click()
+            browser.find_element(By.CSS_SELECTOR, "button[class*='awsui_variant-primary']").click()
 
             time.sleep(10)
             logger.info("Success submit the {} model".format(config.md_name))

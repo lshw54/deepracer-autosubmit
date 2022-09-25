@@ -18,5 +18,5 @@ class Config():
     # driver prefix
     arn = config.get('PREFIX', 'ARN')
     league_name = config.get('PREFIX', 'LEAGUENAME')
-    binary_prefix = config.get('PREFIX', 'BINARY')
-    cd_prefix = config.get('PREFIX', 'CHROMEDRIVER')
+    #binary_prefix = config.get('PREFIX', 'BINARY')
+    #cd_prefix = config.get('PREFIX', 'CHROMEDRIVER')
